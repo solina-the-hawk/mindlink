@@ -25,7 +25,6 @@ Mindlink.config = {
     timestamp = false, -- false or "[HH:mm:ss] "
     gagMain = false,
     
-    -- Add this new table!
     ignorePatterns = {
         "Lines of leaden shadow coil underfoot",
         "^writ%.%s*$" -- The ^ means "starts with" and %s*$ means "only spaces after". 
@@ -38,8 +37,14 @@ Mindlink.config = {
         "All", "Local", "City", "Party", "Tells", "Clans", "Misc"
     },
     
+    -- Automated Logging
+    -- Set to true for any tab you want automatically logged to text files
+    logTabs = {
+        ["Local"] = true,
+        ["Tells"] = true,
+    },
+    
     -- Map GMCP channel prefixes to your specific tabs
-    -- If a channel isn't found here, it defaults to the "Misc" tab
     channelMap = {
         say = "Local",
         yell = "Local",
@@ -65,13 +70,44 @@ Mindlink.config = {
 Mindlink.currentTab = Mindlink.currentTab or Mindlink.config.allTab
 
 -- =========================================================================
+-- Automated Logging
+-- =========================================================================
+function Mindlink.logMessage(tabName, rawText)
+    if not Mindlink.config.logTabs[tabName] then return end
+    
+    -- Strip ANSI escape codes to ensure clean text files
+    local plainText = string.gsub(rawText, "\27%[[%d;]*m", "")
+    
+    -- Get or create the logging directory in your Mudlet profile folder
+    local logDir = getMudletHomeDir() .. "/MindlinkLogs"
+    if not lfs.attributes(logDir) then
+        lfs.mkdir(logDir)
+    end
+    
+    local dateStr = os.date("%Y-%m-%d")
+    local timeStr = os.date("%H:%M:%S")
+    local fileName = logDir .. "/" .. tabName .. "_" .. dateStr .. ".txt"
+    
+    local file = io.open(fileName, "a")
+    if file then
+        -- We always add a timestamp to the log file, even if it's disabled in the UI
+        file:write("[" .. timeStr .. "] " .. plainText .. "\n")
+        file:close()
+    end
+end
+
+-- =========================================================================
 -- UI Creation
 -- =========================================================================
 function Mindlink.createUI()
-    Mindlink.container = Geyser.Container:new({
-        name = "MindlinkContainer",
+    -- CHANGED: Now uses UserWindow instead of Container to allow pop-out and docking.
+    -- Tip: If the window ever vanishes off-screen, change the name below 
+    -- to "MindlinkUserWindow2" to force Mudlet to reset its coordinates.
+    Mindlink.container = Geyser.UserWindow:new({
+        name = "MindlinkUserWindow",
         x = Mindlink.config.x, y = Mindlink.config.y,
         width = Mindlink.config.width, height = Mindlink.config.height,
+        restoreLayout = true, -- Remembers where you docked/dragged it
     })
 
     Mindlink.tabBar = Geyser.HBox:new({
@@ -160,6 +196,7 @@ function Mindlink.onGMCPChat()
     if not Mindlink.tabs[targetTab] then targetTab = Mindlink.config.allTab end
 
     Mindlink.appendChat(targetTab, text)
+    Mindlink.logMessage(targetTab, text) -- Trigger the logger
 
     if Mindlink.config.gagMain then
         local cleanText = strip_colours(text)
@@ -203,6 +240,8 @@ function Mindlink.captureFromTrigger(targetTab)
             appendBuffer(allConsole.name)
         end
     end
+    
+    Mindlink.logMessage(targetTab, line) -- Log using the plain-text global "line" variable
 
     if Mindlink.config.gagMain then
         deleteLine()
