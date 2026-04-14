@@ -90,7 +90,6 @@ function Mindlink.logMessage(tabName, rawText)
     
     local file = io.open(fileName, "a")
     if file then
-        -- We always add a timestamp to the log file, even if it's disabled in the UI
         file:write("[" .. timeStr .. "] " .. plainText .. "\n")
         file:close()
     end
@@ -100,14 +99,12 @@ end
 -- UI Creation
 -- =========================================================================
 function Mindlink.createUI()
-    -- CHANGED: Now uses UserWindow instead of Container to allow pop-out and docking.
-    -- Tip: If the window ever vanishes off-screen, change the name below 
-    -- to "MindlinkUserWindow2" to force Mudlet to reset its coordinates.
-    Mindlink.container = Geyser.UserWindow:new({
-        name = "MindlinkUserWindow",
+    -- Reverted back to Geyser.Container. 
+    -- This natively supports your "-25%" and "50%" relative coordinates flawlessly.
+    Mindlink.container = Geyser.Container:new({
+        name = "MindlinkContainer",
         x = Mindlink.config.x, y = Mindlink.config.y,
         width = Mindlink.config.width, height = Mindlink.config.height,
-        restoreLayout = true, -- Remembers where you docked/dragged it
     })
 
     Mindlink.tabBar = Geyser.HBox:new({
@@ -196,7 +193,7 @@ function Mindlink.onGMCPChat()
     if not Mindlink.tabs[targetTab] then targetTab = Mindlink.config.allTab end
 
     Mindlink.appendChat(targetTab, text)
-    Mindlink.logMessage(targetTab, text) -- Trigger the logger
+    Mindlink.logMessage(targetTab, text)
 
     if Mindlink.config.gagMain then
         local cleanText = strip_colours(text)
@@ -211,28 +208,24 @@ function Mindlink.captureFromTrigger(targetTab)
     local console = Mindlink.consoles[targetTab]
     if not console then return end
 
-    -- Grab the raw text of the line to check against our ignore list
     local rawText = strip_colours(line)
     
     if Mindlink.config.ignorePatterns then
         for _, pattern in ipairs(Mindlink.config.ignorePatterns) do
             if string.find(rawText, pattern) then
-                return -- This line matches an ignored pattern. Abort!
+                return
             end
         end
     end
 
     local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
 
-    -- Select the line exactly as it appears in the main window (colors intact!)
     selectCurrentLine()
     copy()
 
-    -- Paste it to the target tab
     console:decho(timeStr)
     appendBuffer(console.name)
 
-    -- Paste it to the All tab
     if Mindlink.config.allTab and targetTab ~= Mindlink.config.allTab then
         local allConsole = Mindlink.consoles[Mindlink.config.allTab]
         if allConsole then
@@ -241,7 +234,7 @@ function Mindlink.captureFromTrigger(targetTab)
         end
     end
     
-    Mindlink.logMessage(targetTab, line) -- Log using the plain-text global "line" variable
+    Mindlink.logMessage(targetTab, line)
 
     if Mindlink.config.gagMain then
         deleteLine()
@@ -261,7 +254,7 @@ function Mindlink.init()
     table.insert(Mindlink.events, registerAnonymousEventHandler("gmcp.Comm.Channel.Text", "Mindlink.onGMCPChat"))
 
     Mindlink.createUI()
-    cecho("\n<green>[Mindlink]:<reset> Telepathic Pnemonics Initialized.\n")
+    cecho("\n<green>[Mindlink]:<reset> Telepathic Ledger Initialized.\n")
 end
 
 Mindlink.init()
