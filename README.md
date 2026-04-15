@@ -23,7 +23,8 @@ Unlike older systems, Mindlink has zero external dependencies, relies purely on 
 2. Save the script. The UI will instantly generate and dock to the right side of your screen.
 3. Edit the `Mindlink.config` block at the top of the script to adjust sizing, tabs, and colors to your liking.
 
-You can put this anywhere. I recommend using going into Preferences > Main Display in Mudlet and adding a Display Border in which to contain this (and possibly other packages!). I use a right border width of 650px, but this will vary based on your display size.
+You can put the geyser window anywhere. However, I recommend using going into Preferences > Main Display in Mudlet and adding a Display Border to the left or right in which to contain this (and possibly other packages!). I use a right border width of 650px, with my mapper above it, but this will vary based on your display size and preferences!
+
 ---
 
 ## Setting up Emote Capture
