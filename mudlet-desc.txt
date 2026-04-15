@@ -1,0 +1,7 @@
+Mindlink: Telepathic Communication Ledger
+
+A lightweight, zero-dependency tabbed chat capture system for Achaea. Mindlink cleanly organizes your channels, tells, and local interactions into a customizable Geyser interface so you never miss a message to screen spam. 
+
+Features include native GMCP routing, flawless color-preserved emote capturing, smart ignore-lists for environmental text, and automated, timestamped roleplay logging to your local hard drive. 
+
+To configure your tabs, layout size, or logging preferences, simply open the Mindlink-Core script in your Script Editor and adjust the configuration block at the top.
