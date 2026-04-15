@@ -196,7 +196,7 @@ function Mindlink.onGMCPChat()
     Mindlink.logMessage(targetTab, text)
 
     if Mindlink.config.gagMain then
-        local cleanText = strip_colours(text)
+        local cleanText = ansi2string(text)
         tempExactMatchTrigger(cleanText, [[deleteLine()]], 1)
     end
 end
@@ -208,7 +208,7 @@ function Mindlink.captureFromTrigger(targetTab)
     local console = Mindlink.consoles[targetTab]
     if not console then return end
 
-    local rawText = strip_colours(line)
+    local rawText = line
     
     if Mindlink.config.ignorePatterns then
         for _, pattern in ipairs(Mindlink.config.ignorePatterns) do
