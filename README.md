@@ -20,7 +20,6 @@ Unlike older systems, Mindlink has zero external dependencies, relies purely on 
 ## Installation
 
 1. Download the `Mindlink.mpackage` or import the `Mindlink-Core.lua` script directly into your Mudlet Script Editor.
-2. If you are importing directly instead of using the mpackage, import the XML file to create the emote catching trigger.
 3. Save the script. The UI will instantly generate and dock to the right side of your screen.
 4. Edit the `Mindlink.config` block at the top of the script to adjust sizing, tabs, and colors to your liking.
 
@@ -33,15 +32,18 @@ You can put the geyser window anywhere. However, I recommend using going into Pr
 Emotes in Achaea are freeform and tricky to catch with standard text triggers. Mindlink solves this by using Achaea's native color configuration.
 
 **Step 1:** Set your emotes to a unique color in Achaea. For example:
-`CONFIG COLOR EMOTE MAGENTA`
+`config colour emotes 8`
+This makes them dark grey, which is not used for very much else.
 
 **Step 2:** Create a trigger in Mudlet to catch it:
 1. Create a new trigger and change the pattern type to `color pattern`.
-2. Select your chosen color (e.g., Magenta) as the foreground color.
+2. Select your chosen color (e.g., dark grey) as the foreground color.
 3. In the script box, add this exact line:
    `Mindlink.captureFromTrigger("Local")`
 
 Now, any emote painted in that color will be perfectly copied to your Local tab!
+
+You can also use the one included with the Mudlet mpackage, or import the xml file in the repository.
 
 *(Note: If a specific room description also uses this color, you can add that text to the `ignorePatterns` table in the script configuration to prevent it from being copied).*
 
