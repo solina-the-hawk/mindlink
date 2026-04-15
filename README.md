@@ -20,8 +20,9 @@ Unlike older systems, Mindlink has zero external dependencies, relies purely on 
 ## Installation
 
 1. Download the `Mindlink.mpackage` or import the `Mindlink-Core.lua` script directly into your Mudlet Script Editor.
-2. Save the script. The UI will instantly generate and dock to the right side of your screen.
-3. Edit the `Mindlink.config` block at the top of the script to adjust sizing, tabs, and colors to your liking.
+2. If you are importing directly instead of using the mpackage, import the XML file to create the emote catching trigger.
+3. Save the script. The UI will instantly generate and dock to the right side of your screen.
+4. Edit the `Mindlink.config` block at the top of the script to adjust sizing, tabs, and colors to your liking.
 
 You can put the geyser window anywhere. However, I recommend using going into Preferences > Main Display in Mudlet and adding a Display Border to the left or right in which to contain this (and possibly other packages!). I use a right border width of 650px, with my mapper above it, but this will vary based on your display size and preferences!
 
