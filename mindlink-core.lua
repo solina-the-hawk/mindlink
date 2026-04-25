@@ -22,9 +22,9 @@ Mindlink.config = {
     gagMain = false,    
     colorMain = true,   
     
-    -- XTerm256 Color for Emotes. (244 is dark grey). 
+    -- XTerm256 Color for Emotes. (242 is dark grey). 
     -- Mindlink will automatically set this in Achaea and create the trigger!
-    emoteColor = 244,
+    emoteColor = 242,
     
     hiddenChannels = {
         ["clt"] = false,
@@ -32,10 +32,10 @@ Mindlink.config = {
     },
     
     ignorePatterns = {
-        -- Because we use XTerm 244, you rarely need these anymore!
+        -- Because we use XTerm 237+, you rarely need these anymore!
         "^writ%.%s*$", 
-        "^[%w_]+%s+%d+%s+%d+%s+", -- Matches Achaea 'CONFIG COLOR' listing
-        "^[FB]G:%s+%d",           -- Matches color palette rows
+        "^%s*[%w_]+%s+%d+%s+%d+%s+", -- Added %s* to catch invisible leading spaces!
+        "^%s*[FB]G:%s+%d",           -- Catch palette rows even with leading spaces
     },
     
     allTab = "All",
@@ -66,6 +66,7 @@ Mindlink.config = {
     highlights = {
         words = {
             ["Zaleria"] = "<200,170,191>",
+            ["Solina"] = "<125,249,255>",
         },
         channels = {
             ["ct"] = "<0, 191, 255>",
