@@ -1,5 +1,5 @@
 # Mindlink
-**A streamlined, zero-dependency telepathic communication ledger for Achaea and Mudlet.**
+**A streamlined, zero-dependency telepathic communication (tells, channels, etc.) ledger for Achaea and Mudlet.**
 
 Mindlink is a modern, lightweight tell catcher, inspired by predacessors like YATCO, but simplified, streamlined, and without dependencies on other systems or packages. It captures your game's chat channels, tells, and emotes, organizing them into a clean, tabbed Geyser interface so you never lose a message to combat or travel spam again.
 
