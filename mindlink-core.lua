@@ -41,7 +41,7 @@ Mindlink.config = {
     allTab = "All",
     
     tabNames = {
-        "All", "Local", "City", "Party", "Tells", "Clans", "Misc"
+        "All", "Local", "City", "Party", "Tells", "Orgs", "Misc"
     },
     
     logTabs = {
@@ -52,10 +52,11 @@ Mindlink.config = {
     channelMap = {
         say = "Local", yell = "Local", whisper = "Local",
         shout = "Misc", -- Explicitly routing Shouts to Misc
-        ct = "City", ht = "City",
-        party = "Party", tell = "Tells",
+        ct = "City", ht = "City", hnt = "City",
+        party = "Party", intrepid = "Party", 
+        tell = "Tells",
         newbie = "Misc", market = "Misc",
-        clt = "Clans", ot = "Clans", 
+        clt = "Orgs", ot = "Orgs", 
     },
     
     colors = {
@@ -307,7 +308,8 @@ function Mindlink.onGMCPChat()
     Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, text)
 
-    local cleanText = ansi2string(text):gsub("%s+$", "")
+    -- Removed the aggressive trailing-space stripper here!
+    local cleanText = ansi2string(text)
     
     local function processMainWindow(action)
         local found = false
@@ -323,8 +325,10 @@ function Mindlink.onGMCPChat()
             end
         end
         moveCursor("main", 0, getLineCount("main"))
+        
         if not found then
-            tempTrigger(cleanText, function() 
+            -- FIXED: Changed back to tempExactMatchTrigger so parentheses don't break it!
+            tempExactMatchTrigger(cleanText, function() 
                 selectCurrentLine()
                 action() 
             end, 1)
