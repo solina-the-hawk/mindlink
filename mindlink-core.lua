@@ -23,7 +23,10 @@ Mindlink.config = {
     
     fontSize = 9,
     timestamp = false, -- false or "[HH:mm:ss] "
-    gagMain = false,
+    
+    -- Main Window Behavior
+    gagMain = false,    -- Set to true to hide chat from the main window entirely
+    colorMain = true,   -- Set to true to apply our custom colors to the main window too!
     
     ignorePatterns = {
         "Lines of leaden shadow coil underfoot",
@@ -59,12 +62,12 @@ Mindlink.config = {
         ot = "Clans",  -- Order
     },
     
--- Colors (R, G, B)
+    -- Colors (R, G, B)
     colors = {
         activeTab = {r = 40, g = 60, b = 90},   -- Muted blue for active
         inactiveTab = {r = 30, g = 30, b = 30}, -- Dark grey for inactive
         windowBg = {r = 0, g = 0, b = 0},       -- Black chat background
-    }, -- Make sure this comma is here!
+    }, 
 
     -- =========================================================================
     -- Custom Highlights
@@ -76,7 +79,8 @@ Mindlink.config = {
             ["Zaleria"] = "<200,170,191>",
         },
         
-        -- Highlight the ENTIRE line if it comes from a specific GMCP channel (e.g., "tell", "ct")
+        -- Highlight the ENTIRE line if it comes from a specific GMCP channel
+        -- Note: Make sure to use the raw GMCP channel name (e.g., "ct", "cyrene")
         channels = {
             ["ct"] = "<0, 191, 255>",
             ["hnt"] = "<135, 206, 235>",
@@ -88,7 +92,7 @@ Mindlink.config = {
             -- ["has been slain"] = "<red>",
         }
     }
-} -- THIS bracket finally closes Mindlink.config
+}
 
 Mindlink.currentTab = Mindlink.currentTab or Mindlink.config.allTab
 
@@ -98,10 +102,8 @@ Mindlink.currentTab = Mindlink.currentTab or Mindlink.config.allTab
 function Mindlink.logMessage(tabName, rawText)
     if not Mindlink.config.logTabs[tabName] then return end
     
-    -- Strip ANSI escape codes to ensure clean text files
     local plainText = string.gsub(rawText, "\27%[[%d;]*m", "")
     
-    -- Get or create the logging directory in your Mudlet profile folder
     local logDir = getMudletHomeDir() .. "/MindlinkLogs"
     if not lfs.attributes(logDir) then
         lfs.mkdir(logDir)
@@ -122,8 +124,6 @@ end
 -- UI Creation
 -- =========================================================================
 function Mindlink.createUI()
-    -- Reverted back to Geyser.Container. 
-    -- This natively supports your "-25%" and "50%" relative coordinates flawlessly.
     Mindlink.container = Geyser.Container:new({
         name = "MindlinkContainer",
         x = Mindlink.config.x, y = Mindlink.config.y,
@@ -185,29 +185,19 @@ end
 function Mindlink.applyHighlights(text, channel)
     local result = text
 
-    -- Helper function to universally translate ANY color format into strict decho tags
     local function fixColor(colorStr)
         if not colorStr or colorStr == "" then return "" end
-        
-        -- If Legacy NDB passes an RGB table instead of a string
         if type(colorStr) == "table" then
             return string.format("<%d,%d,%d>", colorStr[1], colorStr[2], colorStr[3] or 255)
         end
-        
-        -- Strip out any brackets or spaces to get the raw color name or numbers
         local cleanColor = string.gsub(colorStr, "[<> ]", "")
-        
-        -- If it exists in Mudlet's color_table (e.g., "cornflower_blue", "purple")
         if color_table[cleanColor] then
             local rgb = color_table[cleanColor]
             return string.format("<%d,%d,%d>", rgb[1], rgb[2], rgb[3])
         end
-        
-        -- Otherwise, assume it's a valid RGB string like "0,191,255" and wrap it in brackets
         return "<" .. cleanColor .. ">"
     end
 
-    -- 1. Full Line Overrides (Channels)
     if channel then
         for prefix, color in pairs(Mindlink.config.highlights.channels) do
             if string.find(channel:lower(), "^" .. prefix:lower()) then
@@ -218,7 +208,6 @@ function Mindlink.applyHighlights(text, channel)
         end
     end
 
-    -- 2. Full Line Overrides (Strings)
     for str, color in pairs(Mindlink.config.highlights.linesContaining) do
         if string.find(result, str, 1, true) then
             local safeColor = fixColor(color)
@@ -227,17 +216,12 @@ function Mindlink.applyHighlights(text, channel)
         end
     end
 
-    -- Helper function to apply Smart-Color word replacements
     local function smartWordHighlight(word, color)
         local safeColor = fixColor(color)
         local escapedWord = word:gsub("([^%w])", "%%%1")
-        
-        -- If the word is purely letters, enforce word boundaries so "Ash" doesn't highlight inside "Hashan".
-        -- If it has punctuation (like "(Cyrene):"), just match the exact string anywhere.
         local pattern = string.match(word, "^%a+$") and ("(%f[%a]" .. escapedWord .. "%f[%A])") or ("(" .. escapedWord .. ")")
         
         local out = ""
-        -- Default to the first color tag in the string, or light grey if none exist
         local activeColor = string.match(result, "^(<[0-9,:]+>)") or "<192,192,192>"
         local lastEnd = 1
         
@@ -259,12 +243,10 @@ function Mindlink.applyHighlights(text, channel)
         result = out
     end
 
-    -- 3. Word/Name Highlights (Manual Config)
     for word, color in pairs(Mindlink.config.highlights.words) do
         smartWordHighlight(word, color)
     end
 
-    -- 4. Dynamic Name Database Hook (Legacy.NDB)
     if Legacy and Legacy.NDB and type(Legacy.NDB.db) == "table" then
         local plainText = string.gsub(result, "<[0-9,:]+>", "")
         local processedNames = {}
@@ -274,17 +256,14 @@ function Mindlink.applyHighlights(text, channel)
             
             if not processedNames[titleWord] and not Mindlink.config.highlights.words[titleWord] then
                 local entry = Legacy.NDB.db[titleWord]
-                
                 if entry and entry.city then
                     local color = nil
-                    
                     if Legacy.Settings and Legacy.Settings.NDB and Legacy.Settings.NDB.Config then
                         local cityConfig = Legacy.Settings.NDB.Config[entry.city:lower()]
                         if cityConfig and cityConfig.color then
                             color = cityConfig.color
                         end
                     end
-                    
                     if color then
                         smartWordHighlight(titleWord, color)
                         processedNames[titleWord] = true
@@ -298,17 +277,11 @@ function Mindlink.applyHighlights(text, channel)
 end
 
 -- =========================================================================
--- GMCP Chat Processing
+-- Tab Printing Helper
 -- =========================================================================
-function Mindlink.appendChat(targetTab, text, channel)
+function Mindlink.appendChat(targetTab, formattedText, timeStr)
     local console = Mindlink.consoles[targetTab]
     if not console then return end
-
-    local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
-    local formattedText = ansi2decho(text):gsub("<reset>", "")
-    
-    -- PASS TEXT THROUGH THE HIGHLIGHTER
-    formattedText = Mindlink.applyHighlights(formattedText, channel)
 
     console:decho(timeStr .. formattedText .. "\n")
 
@@ -320,20 +293,18 @@ function Mindlink.appendChat(targetTab, text, channel)
     end
 end
 
+-- =========================================================================
+-- GMCP Chat Processing
+-- =========================================================================
 function Mindlink.onGMCPChat()
     if not gmcp.Comm or not gmcp.Comm.Channel or not gmcp.Comm.Channel.Text then return end
     
     local channel = gmcp.Comm.Channel.Text.channel
     local text = gmcp.Comm.Channel.Text.text
     
-    -- === ADD THIS DEBUG LINE ===
-    cecho(string.format("\n<yellow>[Mindlink Debug] Raw Channel ID: <red>'%s'<reset>\n", channel))
-    -- ===========================
-
     local targetTab = "Misc" 
-
     for prefix, mappedTab in pairs(Mindlink.config.channelMap) do
-        if string.find(channel, "^" .. prefix) then
+        if string.find(channel:lower(), "^" .. prefix:lower()) then
             targetTab = mappedTab
             break
         end
@@ -341,13 +312,27 @@ function Mindlink.onGMCPChat()
 
     if not Mindlink.tabs[targetTab] then targetTab = Mindlink.config.allTab end
 
-    -- INCLUDE THE CHANNEL VARIABLE HERE
-    Mindlink.appendChat(targetTab, text, channel)
+    -- 1. Generate the fully highlighted string
+    local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
+    local formattedText = ansi2decho(text):gsub("<reset>", "")
+    formattedText = Mindlink.applyHighlights(formattedText, channel)
+
+    -- 2. Print to the Tabs
+    Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, text)
 
+    -- 3. Handle Main Window (Gag or Color)
     if Mindlink.config.gagMain then
         local cleanText = ansi2string(text)
-        tempExactMatchTrigger(cleanText, [[deleteLine()]], 1)
+        tempExactMatchTrigger(cleanText, function() deleteLine() end, 1)
+        
+    elseif Mindlink.config.colorMain then
+        local cleanText = ansi2string(text)
+        local mainText = timeStr .. formattedText
+        tempExactMatchTrigger(cleanText, function() 
+            selectCurrentLine()
+            dreplace(mainText) 
+        end, 1)
     end
 end
 
@@ -368,33 +353,25 @@ function Mindlink.captureFromTrigger(targetTab)
         end
     end
 
+    -- 1. Extract raw line and format it
     local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
-
-    -- THE FIX: Instead of copying the buffer, we extract the color and text,
-    -- format it with decho tags, and pass it through our highlighter!
     selectCurrentLine()
     local r, g, b = getFgColor()
     local baseColorTag = string.format("<%d,%d,%d>", r, g, b)
     
-    -- Build the string and run it through the smart-highlighter
     local formattedText = baseColorTag .. rawText
     formattedText = Mindlink.applyHighlights(formattedText)
 
-    -- Print to the target tab
-    console:decho(timeStr .. formattedText .. "\n")
-
-    -- Print to the All tab
-    if Mindlink.config.allTab and targetTab ~= Mindlink.config.allTab then
-        local allConsole = Mindlink.consoles[Mindlink.config.allTab]
-        if allConsole then
-            allConsole:decho(timeStr .. formattedText .. "\n")
-        end
-    end
-    
+    -- 2. Print to the Tabs
+    Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, rawText)
 
+    -- 3. Handle Main Window
     if Mindlink.config.gagMain then
         deleteLine()
+    elseif Mindlink.config.colorMain then
+        selectCurrentLine()
+        dreplace(timeStr .. formattedText)
     end
 end
 
