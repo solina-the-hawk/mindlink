@@ -1,9 +1,3 @@
--- To catch emotes properly, you need to configure their colour to something
--- seldom used elsewhere, select that colour in the Mindlink trigger, and
--- then add exclusions for anything else which still does use that colour in
--- the config below. I find setting emotes to dark grey works best for this,
--- since by default it's used by very little, and so the default config below
--- has an ignore set up for Hashan's 'leaden' alchemy room descriptions.
 -- =========================================================================
 -- MINDLINK: Telepathic Communication Ledger
 -- =========================================================================
@@ -25,80 +19,60 @@ Mindlink.config = {
     timestamp = false, -- false or "[HH:mm:ss] "
     
     -- Main Window Behavior
-    gagMain = false,    -- Set to true to hide ALL captured chat from the main window
-    colorMain = true,   -- Set to true to apply our custom colors to the main window too!
+    gagMain = false,    
+    colorMain = true,   
     
-    -- Hide specific channels from the main window (they still go to your tabs!)
-    -- Use the GMCP prefix (e.g., "clt" for clans)
+    -- XTerm256 Color for Emotes. (244 is dark grey). 
+    -- Mindlink will automatically set this in Achaea and create the trigger!
+    emoteColor = 244,
+    
     hiddenChannels = {
         ["clt"] = true,
         ["market"] = true,
-        -- ["ot"] = true,
     },
     
     ignorePatterns = {
-        "Lines of leaden shadow coil underfoot",
-        "^writ%.%s*$" -- The ^ means "starts with" and %s*$ means "only spaces after". 
+        -- Because we use XTerm 244, you rarely need these anymore!
+        "^writ%.%s*$", 
+        "^[%w_]+%s+%d+%s+%d+%s+", -- Matches Achaea 'CONFIG COLOR' listing
+        "^[FB]G:%s+%d",           -- Matches color palette rows
     },
     
     allTab = "All",
     
-    -- The tabs you want created, in order from left to right
     tabNames = {
         "All", "Local", "City", "Party", "Tells", "Clans", "Misc"
     },
     
-    -- Automated Logging
-    -- Set to true for any tab you want automatically logged to text files
     logTabs = {
         ["Local"] = true,
         ["Tells"] = true,
     },
     
-    -- Map GMCP channel prefixes to your specific tabs
     channelMap = {
-        say = "Local",
-        yell = "Local",
-        whisper = "Local",
-        ct = "City",
-        ht = "City",
-        party = "Party",
-        tell = "Tells",
-        newbie = "Misc",
-        market = "Misc",
-        clt = "Clans", -- Clans
-        ot = "Clans",  -- Order
+        say = "Local", yell = "Local", whisper = "Local",
+        ct = "City", ht = "City",
+        party = "Party", tell = "Tells",
+        newbie = "Misc", market = "Misc",
+        clt = "Clans", ot = "Clans", 
     },
     
-    -- Colors (R, G, B)
     colors = {
-        activeTab = {r = 40, g = 60, b = 90},   -- Muted blue for active
-        inactiveTab = {r = 30, g = 30, b = 30}, -- Dark grey for inactive
-        windowBg = {r = 0, g = 0, b = 0},       -- Black chat background
+        activeTab = {r = 40, g = 60, b = 90},   
+        inactiveTab = {r = 30, g = 30, b = 30}, 
+        windowBg = {r = 0, g = 0, b = 0},       
     }, 
 
-    -- =========================================================================
-    -- Custom Highlights
-    -- Use Mudlet color tags (e.g., "<gold>", "<255,0,0>")
-    -- =========================================================================
     highlights = {
-        -- Highlight specific words/names anywhere they appear
         words = {
             ["Zaleria"] = "<200,170,191>",
         },
-        
-        -- Highlight the ENTIRE line if it comes from a specific GMCP channel
-        -- Note: Make sure to use the raw GMCP channel name (e.g., "ct", "cyrene")
         channels = {
             ["ct"] = "<0, 191, 255>",
             ["hnt"] = "<135, 206, 235>",
             ["ht"] = "<0, 191, 255>",  
         },
-        
-        -- Highlight the ENTIRE line if it contains a specific string
-        linesContaining = {
-            -- ["has been slain"] = "<red>",
-        }
+        linesContaining = {}
     }
 }
 
@@ -111,11 +85,8 @@ function Mindlink.logMessage(tabName, rawText)
     if not Mindlink.config.logTabs[tabName] then return end
     
     local plainText = string.gsub(rawText, "\27%[[%d;]*m", "")
-    
     local logDir = getMudletHomeDir() .. "/MindlinkLogs"
-    if not lfs.attributes(logDir) then
-        lfs.mkdir(logDir)
-    end
+    if not lfs.attributes(logDir) then lfs.mkdir(logDir) end
     
     local dateStr = os.date("%Y-%m-%d")
     local timeStr = os.date("%H:%M:%S")
@@ -129,7 +100,7 @@ function Mindlink.logMessage(tabName, rawText)
 end
 
 -- =========================================================================
--- UI Creation
+-- UI Creation & Interaction
 -- =========================================================================
 function Mindlink.createUI()
     Mindlink.container = Geyser.Container:new({
@@ -139,8 +110,7 @@ function Mindlink.createUI()
     })
 
     Mindlink.tabBar = Geyser.HBox:new({
-        name = "MindlinkTabBar",
-        x = 0, y = 0,
+        name = "MindlinkTabBar", x = 0, y = 0,
         width = "100%", height = "25px",
     }, Mindlink.container)
 
@@ -154,8 +124,7 @@ function Mindlink.createUI()
 
         Mindlink.consoles[tabName] = Geyser.MiniConsole:new({
             name = "MindlinkWin_" .. tabName,
-            x = 0, y = "25px",
-            width = "100%", height = "-25px",
+            x = 0, y = "25px", width = "100%", height = "-25px",
             color = "black",
         }, Mindlink.container)
         
@@ -170,9 +139,6 @@ function Mindlink.createUI()
     Mindlink.switchTab(Mindlink.currentTab)
 end
 
--- =========================================================================
--- UI Interaction
--- =========================================================================
 function Mindlink.switchTab(tabName)
     local activeCol = Mindlink.config.colors.activeTab
     local inactiveCol = Mindlink.config.colors.inactiveTab
@@ -307,10 +273,9 @@ end
 function Mindlink.onGMCPChat()
     if not gmcp.Comm or not gmcp.Comm.Channel or not gmcp.Comm.Channel.Text then return end
     
-local channel = gmcp.Comm.Channel.Text.channel
+    local channel = gmcp.Comm.Channel.Text.channel
     local text = gmcp.Comm.Channel.Text.text
     
-    -- Dynamically print the channel ID if the user typed "mindlink debug"
     if Mindlink.config.debug then
         cecho(string.format("\n<yellow>[Mindlink Debug] Raw Channel ID: <red>'%s'<reset>\n", channel))
     end
@@ -333,29 +298,21 @@ local channel = gmcp.Comm.Channel.Text.channel
         end
     end
 
-    -- 1. Generate the fully highlighted string
     local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
     local formattedText = ansi2decho(text):gsub("<reset>", "")
     formattedText = Mindlink.applyHighlights(formattedText, channel)
 
-    -- 2. Print to the Tabs
     Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, text)
 
-    -- 3. Handle Main Window (Buffer Scanning to fix GMCP desync!)
-    -- Strip ANSI and trailing whitespace for a flawless text match
     local cleanText = ansi2string(text):gsub("%s+$", "")
     
     local function processMainWindow(action)
         local found = false
         local lineNum = getLineCount("main")
-        
-        -- Scan the last 10 lines of the buffer (Looking back in time)
         for i = lineNum, math.max(1, lineNum - 10), -1 do
             moveCursor("main", 0, i)
             local currentLine = getCurrentLine("main")
-            
-            -- If we find the text already printed, process it immediately
             if string.find(currentLine, cleanText, 1, true) then
                 selectCurrentLine("main")
                 action()
@@ -363,11 +320,7 @@ local channel = gmcp.Comm.Channel.Text.channel
                 break
             end
         end
-        
-        -- Snap the invisible cursor back to the bottom of the screen
         moveCursor("main", 0, getLineCount("main"))
-        
-        -- If it wasn't in the buffer, set a substring trigger to catch it when it arrives
         if not found then
             tempTrigger(cleanText, function() 
                 selectCurrentLine()
@@ -379,7 +332,6 @@ local channel = gmcp.Comm.Channel.Text.channel
     if Mindlink.config.gagMain or isChannelHidden then
         processMainWindow(function() deleteLine() end)
     elseif Mindlink.config.colorMain then
-        -- Explicitly append the default grey to guarantee the color doesn't bleed to prompts
         local mainText = timeStr .. formattedText .. "<192,192,192>"
         processMainWindow(function() dreplace(mainText) end)
     end
@@ -396,17 +348,11 @@ function Mindlink.captureFromTrigger(targetTab)
     
     if Mindlink.config.ignorePatterns then
         for _, pattern in ipairs(Mindlink.config.ignorePatterns) do
-            if string.find(rawText, pattern) then
-                return
-            end
+            if string.find(rawText, pattern) then return end
         end
     end
 
-    -- 1. Extract raw line and format it
     local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
-    
-    -- THE FIX: Scan the line character-by-character to perfectly preserve ANY 
-    -- internal color changes (like SAY colors inside emotes)
     local formattedText = ""
     local lastColor = ""
     local lineLen = utf8 and utf8.len(line) or string.len(line)
@@ -426,16 +372,13 @@ function Mindlink.captureFromTrigger(targetTab)
         
         formattedText = formattedText .. char
     end
-    deselect() -- Clear the selection so we don't mess up the visual buffer
+    deselect() 
     
-    -- Pass the perfectly reconstructed multi-color string through our highlighter
     formattedText = Mindlink.applyHighlights(formattedText)
 
-    -- 2. Print to the Tabs
     Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, rawText)
 
-    -- 3. Handle Main Window
     if Mindlink.config.gagMain then
         deleteLine()
     elseif Mindlink.config.colorMain then
@@ -445,33 +388,30 @@ function Mindlink.captureFromTrigger(targetTab)
 end
 
 -- =========================================================================
--- Initialization
+-- Output Gagging Utility (Hides Achaea Config Walls)
 -- =========================================================================
-function Mindlink.init()
-    -- Kill old events
-    for _, handlerID in ipairs(Mindlink.events) do
-        killAnonymousEventHandler(handlerID)
-    end
-    Mindlink.events = {}
-
-    -- Kill old aliases
-    if Mindlink.aliasHandler then killAlias(Mindlink.aliasHandler) end
-
-    -- Register GMCP Event
-    sendGMCP([[Core.Supports.Add ["Comm.Channel 1"] ]])
-    table.insert(Mindlink.events, registerAnonymousEventHandler("gmcp.Comm.Channel.Text", "Mindlink.onGMCPChat"))
-
-    -- Register Command Alias
-    Mindlink.aliasHandler = tempAlias("^mindlink(?: (.*))?$", [[
-        local args = matches[2] or "help"
-        Mindlink.handleCommand(args)
-    ]])
-
-    Mindlink.createUI()
-    cecho("\n<green>[Mindlink]:<reset> Telepathic Ledger Initialized. Type <yellow>mindlink help<reset> for commands.\n")
+function Mindlink.silenceColorConfig()
+    local startID
+    -- Trigger 1: Listens for the very first line of the block
+    startID = tempRegexTrigger("^Channel emotes set to \\d+\\.", function()
+        deleteLine()
+        
+        local gagID
+        -- Trigger 2: Aggressively gags everything until the end phrase is found
+        gagID = tempRegexTrigger("^.*$", function()
+            deleteLine()
+            if string.find(line, "To restore the defaults, enter CONFIG COLOUR DEFAULT", 1, true) then
+                killTrigger(gagID) -- Stop gagging!
+            end
+        end)
+        
+        -- Failsafe: Turn off the gag after 2.5 seconds just in case the end line drops
+        tempTimer(2.5, function() if gagID then killTrigger(gagID) end end)
+    end, 1) -- '1' means this start listener fires exactly once, then self-destructs
+    
+    -- Failsafe: Turn off the listener if the command fails
+    tempTimer(2.5, function() if startID then killTrigger(startID) end end)
 end
-
-Mindlink.init()
 
 -- =========================================================================
 -- In-Game Commands & Help Interface
@@ -480,29 +420,22 @@ function Mindlink.showHelp()
     cecho("\n<dodger_blue>=======================================================================<reset>")
     cecho("\n<dodger_blue>                        M I N D L I N K   H E L P                      <reset>")
     cecho("\n<dodger_blue>=======================================================================<reset>\n")
-    cecho("\n<white>Mindlink is a zero-dependency telepathic ledger. Most lasting config changes")
-    cecho("\n<white>(like adding new tabs or custom colors) are made by editing the")
+    cecho("\n<white>Mindlink is a zero-dependency telepathic ledger. Most permanent changes")
+    cecho("\n(like adding new tabs or custom colors) are made by editing the")
     cecho("\n<yellow>Mindlink.config<white> block at the very top of the Mindlink script.<reset>\n")
     
     cecho("\n<cyan>In-Game Commands (Current Session Only):<reset>")
-    cecho("\n  <yellow>mindlink toggle gag<reset>   - Toggles hiding captured chat from the main window.")
-    cecho("\n  <yellow>mindlink toggle color<reset> - Toggles applying custom colors to the main window.")
-    cecho("\n  <yellow>mindlink debug<reset>        - Toggles printing raw GMCP channel IDs (for setup).")
+    cecho("\n  <yellow>mindlink gag <channel><reset>  - Toggles hiding a channel from the main window.")
+    cecho("\n  <yellow>mindlink emote <color><reset>  - Tests a new XTerm256 color for emote catching.")
+    cecho("\n  <yellow>mindlink toggle gag<reset>     - Toggles hiding ALL captured chat from the main window.")
+    cecho("\n  <yellow>mindlink toggle color<reset>   - Toggles applying custom colors to the main window.")
+    cecho("\n  <yellow>mindlink debug<reset>          - Toggles printing raw GMCP channel IDs (for setup).")
     
-    cecho("\n\n<cyan>How to Map a New Channel:<reset>")
-    cecho("\n  1. Turn on <yellow>mindlink debug<reset> and speak on the channel to find its raw ID.")
-    cecho("\n  2. Open the script and add that ID to <yellow>Mindlink.config.channelMap<reset>.")
-    cecho("\n     Example: <white>[\"market\"] = \"Misc\",<reset>")
+    cecho("\n\n<cyan>How to Catch Emotes (Automatic!):<reset>")
+    cecho("\n  Mindlink catches emotes completely automatically using XTerm256 colors.")
+    cecho("\n  To permanently change the color, edit <yellow>Mindlink.config.emoteColor<reset> in the script.")
+    cecho("\n  Mindlink will instantly sync Achaea and your Mudlet triggers on save!")
     
-    cecho("\n\n<cyan>How to Hide a Spammy Channel from main output:<reset>")
-    cecho("\n  Add its raw ID to <yellow>Mindlink.config.hiddenChannels<reset>.")
-    cecho("\n  It will be gagged from the main window, but still log to your tabs.")
-    
-    cecho("\n\n<cyan>How to Catch Emotes:<reset>")
-    cecho("\n  1. In Achaea, set emotes to a fairly unique color (this is dark grey): <white>CONFIG COLOUR EMOTES 8<reset>")
-    cecho("\n  2. In Mudlet, make a Color Trigger looking for that exact Dark Grey colour.")
-    cecho("\n  (foreground ANSI 8). One is included in the MPackage file.")
-    cecho("\n  3. Make the trigger execute this script: <yellow>Mindlink.captureFromTrigger(\"Local\")<reset>")
     cecho("\n<dodger_blue>=======================================================================<reset>\n")
 end
 
@@ -526,13 +459,71 @@ function Mindlink.handleCommand(args)
         Mindlink.config.debug = not Mindlink.config.debug
         local state = Mindlink.config.debug and "<green>ON" or "<red>OFF"
         cecho("\n<dodger_blue>[Mindlink]:<reset> GMCP Channel Sniffer is now " .. state .. "<reset>\n")
-        if Mindlink.config.debug then
-            cecho("<gray>   (Speak on a channel to see its raw ID printed here!)<reset>\n")
+        
+    elseif cmd:sub(1, 4) == "gag " then
+        local chan = cmd:sub(5):match("^%s*(.-)%s*$") 
+        if chan == "" then
+            cecho("\n<dodger_blue>[Mindlink]:<reset> Please specify a channel prefix (e.g., <yellow>mindlink gag ct<reset>)\n")
+        else
+            if Mindlink.config.hiddenChannels[chan] then
+                Mindlink.config.hiddenChannels[chan] = nil
+                cecho("\n<dodger_blue>[Mindlink]:<reset> Channel '<yellow>" .. chan .. "<reset>' is no longer gagged.\n")
+            else
+                Mindlink.config.hiddenChannels[chan] = true
+                cecho("\n<dodger_blue>[Mindlink]:<reset> Channel '<yellow>" .. chan .. "<reset>' is now hidden (session only).\n")
+            end
+        end
+        
+    elseif cmd:sub(1, 6) == "emote " then
+        local colorNum = cmd:sub(7):match("^%s*(%d+)%s*$")
+        if colorNum then
+            Mindlink.config.emoteColor = tonumber(colorNum)
+            
+            -- Silently eat the massive output block
+            Mindlink.silenceColorConfig()
+            
+            send("config colour emotes " .. colorNum, false)
+            
+            if Mindlink.emoteTrigger then killTrigger(Mindlink.emoteTrigger) end
+            Mindlink.emoteTrigger = tempColorTrigger(Mindlink.config.emoteColor, -1, [[Mindlink.captureFromTrigger("Local")]])
+            
+            cecho("\n<dodger_blue>[Mindlink]:<reset> Emote color set to " .. colorNum .. " and trigger updated!\n")
+            cecho("<dodger_blue>[Mindlink]:<reset> (Note: Update <yellow>Mindlink.config.emoteColor<reset> in the script to make this permanent.)\n")
+        else
+            cecho("\n<dodger_blue>[Mindlink]:<reset> Please specify a valid XTerm256 color number (0-255).\n")
         end
         
     else
         cecho("\n<dodger_blue>[Mindlink]:<reset> Unknown command. Type <yellow>mindlink help<reset> for options.\n")
     end
+end
+
+-- =========================================================================
+-- Initialization
+-- =========================================================================
+function Mindlink.init()
+    for _, handlerID in ipairs(Mindlink.events) do killAnonymousEventHandler(handlerID) end
+    Mindlink.events = {}
+    if Mindlink.aliasHandler then killAlias(Mindlink.aliasHandler) end
+
+    sendGMCP([[Core.Supports.Add ["Comm.Channel 1"] ]])
+    table.insert(Mindlink.events, registerAnonymousEventHandler("gmcp.Comm.Channel.Text", "Mindlink.onGMCPChat"))
+
+    Mindlink.aliasHandler = tempAlias("^mindlink(?: (.*))?$", [[
+        local args = matches[2] or "help"
+        Mindlink.handleCommand(args)
+    ]])
+
+    if Mindlink.emoteTrigger then killTrigger(Mindlink.emoteTrigger) end
+    
+    -- Silently eat the massive output block on load
+    Mindlink.silenceColorConfig()
+    send("config colour emotes " .. Mindlink.config.emoteColor, false)
+    
+    Mindlink.emoteTrigger = tempColorTrigger(Mindlink.config.emoteColor, -1, [[Mindlink.captureFromTrigger("Local")]])
+
+    Mindlink.createUI()
+    cecho("\n<green>[Mindlink]:<reset> Telepathic Ledger Initialized. Type <yellow>mindlink help<reset> for commands.\n")
 end
 
 Mindlink.init()
