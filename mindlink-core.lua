@@ -51,6 +51,7 @@ Mindlink.config = {
     
     channelMap = {
         say = "Local", yell = "Local", whisper = "Local",
+        shout = "Misc", -- Explicitly routing Shouts to Misc
         ct = "City", ht = "City",
         party = "Party", tell = "Tells",
         newbie = "Misc", market = "Misc",
