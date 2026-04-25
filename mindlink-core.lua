@@ -27,7 +27,7 @@ Mindlink.config = {
     emoteColor = 244,
     
     hiddenChannels = {
-        ["clt"] = true,
+        ["clt"] = false,
         ["market"] = true,
     },
     
