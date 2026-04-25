@@ -433,7 +433,7 @@ function Mindlink.showHelp()
     cecho("\n  <yellow>mindlink debug<reset>          - Toggles printing raw GMCP channel IDs (for setup).")
     
     cecho("\n\n<cyan>How to Catch Emotes (Automatic!):<reset>")
-    cecho("\n  Mindlink catches emotes completely automatically using XTerm256 colors.")
+    cecho("\n  Mindlink catches emotes completely automatically using XTerm256 colors (TYPE COLOURS in game).")
     cecho("\n  To permanently change the color, edit <yellow>Mindlink.config.emoteColor<reset> in the script.")
     cecho("\n  Mindlink will instantly sync Achaea and your Mudlet triggers on save!")
     
