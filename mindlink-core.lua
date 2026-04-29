@@ -7,9 +7,6 @@
 -- Version: 1.2.0
 -- =========================================================================
 Mindlink = Mindlink or {}
-Mindlink.consoles = Mindlink.consoles or {}
-Mindlink.tabs = Mindlink.tabs or {}
-Mindlink.events = Mindlink.events or {}
 
 -- =========================================================================
 -- Configuration
@@ -126,6 +123,14 @@ Mindlink.config = {
 }
 
 Mindlink.currentTab = Mindlink.currentTab or Mindlink.config.allTab
+
+-- =========================================================================
+ -- Runtime States
+ -- Internal variables used for math and tracking. Do not edit!
+ -- =========================================================================
+Mindlink.consoles = Mindlink.consoles or {}
+Mindlink.tabs = Mindlink.tabs or {}
+Mindlink.events = Mindlink.events or {}
 
 -- =========================================================================
 -- Universal Color Parser
