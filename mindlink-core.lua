@@ -308,15 +308,19 @@ function Mindlink.onGMCPChat()
     Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, text)
 
-    -- Removed the aggressive trailing-space stripper here!
-    local cleanText = ansi2string(text)
+    -- THE FIX 1: Strip ANSI and strictly trim invisible leading/trailing whitespace
+    local cleanText = ansi2string(text):match("^%s*(.-)%s*$") or ansi2string(text)
     
     local function processMainWindow(action)
         local found = false
         local lineNum = getLineCount("main")
-        for i = lineNum, math.max(1, lineNum - 10), -1 do
+        
+        -- THE FIX 2: Scan the last 30 lines (increased to beat combat spam!)
+        for i = lineNum, math.max(1, lineNum - 30), -1 do
             moveCursor("main", 0, i)
             local currentLine = getCurrentLine("main")
+            
+            -- Substring match finds it even if Achaea padded the line
             if string.find(currentLine, cleanText, 1, true) then
                 selectCurrentLine("main")
                 action()
@@ -327,8 +331,11 @@ function Mindlink.onGMCPChat()
         moveCursor("main", 0, getLineCount("main"))
         
         if not found then
-            -- FIXED: Changed back to tempExactMatchTrigger so parentheses don't break it!
-            tempExactMatchTrigger(cleanText, function() 
+            -- THE FIX 3: Escape PCRE magic characters with a backslash for Mudlet's regex engine
+            local regexSafeText = cleanText:gsub("([%.%^%$%(%)%[%]%*%+%-%?%|%{%}\\])", "\\%1")
+            
+            -- Use a regex trigger so it acts like a substring match, ignoring invisible garbage
+            tempRegexTrigger(regexSafeText, function() 
                 selectCurrentLine()
                 action() 
             end, 1)
