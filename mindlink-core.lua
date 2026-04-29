@@ -681,6 +681,7 @@ function Mindlink.showHelp()
     cecho("\n<dodger_blue>=======================================================================<reset>\n")
 end
 
+-- Master Alias: Route all user commands to functions
 function Mindlink.handleCommand(args)
     local cmd = args:lower()
     if cmd == "help" or cmd == "" then
