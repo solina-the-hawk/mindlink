@@ -758,15 +758,14 @@ end
 
 -- =========================================================================
 -- Initialization
--- This sets up the GMCP event handler, the emote trigger, and the in-game command alias. It also loads your profile
--- settings and applies them on startup.
+-- This sets up the GMCP event handler, the emote trigger, and the in-game command alias. 
+-- It also loads your profile settings and applies them on startup. It waits to make
+-- sure you are logged in before firing.
 -- =========================================================================
 function Mindlink.init()
     for _, handlerID in ipairs(Mindlink.events) do killAnonymousEventHandler(handlerID) end
     Mindlink.events = {}
     if Mindlink.aliasHandler then killAlias(Mindlink.aliasHandler) end
-
-    -- Removed Mindlink.loadProfile() to let the Lua script be the master config!
 
     sendGMCP([[Core.Supports.Add ["Comm.Channel 1"] ]])
     table.insert(Mindlink.events, registerAnonymousEventHandler("gmcp.Comm.Channel.Text", "Mindlink.onGMCPChat"))
@@ -776,7 +775,7 @@ function Mindlink.init()
         Mindlink.handleCommand(args)
     ]])
 
-    -- 2. Create the Emote Trigger EXACTLY ONCE
+    -- Create the Emote Trigger EXACTLY ONCE
     if Mindlink.emoteTrigger then killTrigger(Mindlink.emoteTrigger) end
     Mindlink.silenceColorConfig()
     send("config colour emotes " .. Mindlink.config.emoteColor, false)
@@ -786,10 +785,6 @@ function Mindlink.init()
     cecho("\n<dodger_blue>[Mindlink]:<reset> Telepathic Ledger Initialized. Type <yellow>mindlink help<reset> for commands.\n")
 end
 
--- =========================================================================
--- Initialization Hook
--- This initializes the script when you first load it, checking for GMCP availability and either hooking directly or waiting for login.
--- =========================================================================
 if gmcp and gmcp.Char and gmcp.Char.Name then
     Mindlink.init()
 else
