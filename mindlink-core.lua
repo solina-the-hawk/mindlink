@@ -11,19 +11,15 @@ Mindlink.events = Mindlink.events or {}
 -- Configuration
 -- =========================================================================
 Mindlink.config = {
-    -- Dimensions & Position (Uses Geyser formatting)
     x = "-25%", y = -550,
     width = "25%", height = "50%",
     
     fontSize = 9,
-    timestamp = false, -- false or "[HH:mm:ss] "
+    timestamp = false, 
     
-    -- Main Window Behavior
     gagMain = false,    
     colorMain = true,   
     
-    -- XTerm256 Color for Emotes. (242 is dark grey). 
-    -- Mindlink will automatically set this in Achaea and create the trigger!
     emoteColor = 242,
     
     hiddenChannels = {
@@ -32,10 +28,9 @@ Mindlink.config = {
     },
     
     ignorePatterns = {
-        -- Because we use XTerm 237+, you rarely need these anymore!
         "^writ%.%s*$", 
-        "^%s*[%w_]+%s+%d+%s+%d+%s+", -- Added %s* to catch invisible leading spaces!
-        "^%s*[FB]G:%s+%d",           -- Catch palette rows even with leading spaces
+        "^%s*[%w_]+%s+%d+%s+%d+%s+", 
+        "^%s*[FB]G:%s+%d",           
     },
     
     allTab = "All",
@@ -51,7 +46,7 @@ Mindlink.config = {
     
     channelMap = {
         say = "Local", yell = "Local", whisper = "Local",
-        shout = "Misc", -- Explicitly routing Shouts to Misc
+        shout = "Misc", 
         ct = "City", ht = "City", hnt = "City",
         party = "Party", intrepid = "Party", 
         tell = "Tells",
@@ -74,12 +69,28 @@ Mindlink.config = {
             ["ct"] = "<0, 191, 255>",
             ["hnt"] = "<135, 206, 235>",
             ["ht"] = "<0, 191, 255>",  
+            ["say"] = "<0, 255, 255>",
+            ["whisper"] = "<0, 255, 255>",
+            ["yell"] = "<255, 255, 0>",
         },
         linesContaining = {}
     }
 }
 
 Mindlink.currentTab = Mindlink.currentTab or Mindlink.config.allTab
+
+-- =========================================================================
+-- Universal Color Parser
+-- =========================================================================
+function Mindlink.parseColor(colorStr)
+    if not colorStr then return 192, 192, 192 end
+    if type(colorStr) == "table" then return colorStr[1], colorStr[2], colorStr[3] or 255 end
+    local clean = string.gsub(colorStr, "[<> ]", "")
+    if color_table[clean] then return unpack(color_table[clean]) end
+    local r, g, b = string.match(clean, "(%d+),(%d+),(%d+)")
+    if r then return tonumber(r), tonumber(g), tonumber(b) end
+    return 192, 192, 192
+end
 
 -- =========================================================================
 -- Automated Logging
@@ -157,52 +168,31 @@ function Mindlink.switchTab(tabName)
 end
 
 -- =========================================================================
--- Custom Highlighting Engine
+-- Word Highlighting Engine (Channels Handled Externally Now)
 -- =========================================================================
-function Mindlink.applyHighlights(text, channel)
+function Mindlink.applyWordHighlights(text)
     local result = text
-
-    local function fixColor(colorStr)
-        if not colorStr or colorStr == "" then return "" end
-        if type(colorStr) == "table" then
-            return string.format("<%d,%d,%d>", colorStr[1], colorStr[2], colorStr[3] or 255)
-        end
-        local cleanColor = string.gsub(colorStr, "[<> ]", "")
-        if color_table[cleanColor] then
-            local rgb = color_table[cleanColor]
-            return string.format("<%d,%d,%d>", rgb[1], rgb[2], rgb[3])
-        end
-        return "<" .. cleanColor .. ">"
-    end
-
-    if channel then
-        for prefix, color in pairs(Mindlink.config.highlights.channels) do
-            if string.find(channel:lower(), "^" .. prefix:lower()) then
-                local safeColor = fixColor(color)
-                result = safeColor .. string.gsub(result, "<[0-9,:]+>", "")
-                break 
-            end
-        end
-    end
 
     for str, color in pairs(Mindlink.config.highlights.linesContaining) do
         if string.find(result, str, 1, true) then
-            local safeColor = fixColor(color)
-            result = safeColor .. string.gsub(result, "<[0-9,:]+>", "")
+            local r, g, b = Mindlink.parseColor(color)
+            local safeColor = string.format("<%d,%d,%d>", r, g, b)
+            result = safeColor .. string.gsub(result, "<[%d,:]+>", "")
             break 
         end
     end
 
     local function smartWordHighlight(word, color)
-        local safeColor = fixColor(color)
+        local r, g, b = Mindlink.parseColor(color)
+        local safeColor = string.format("<%d,%d,%d>", r, g, b)
         local escapedWord = word:gsub("([^%w])", "%%%1")
         local pattern = string.match(word, "^%a+$") and ("(%f[%a]" .. escapedWord .. "%f[%A])") or ("(" .. escapedWord .. ")")
         
         local out = ""
-        local activeColor = string.match(result, "^(<[0-9,:]+>)") or "<192,192,192>"
+        local activeColor = string.match(result, "^(<[%d,:]+>)") or "<192,192,192>"
         local lastEnd = 1
         
-        for colorTag in string.gmatch(result, "<[0-9,:]+>") do
+        for colorTag in string.gmatch(result, "<[%d,:]+>") do
             local startIdx, endIdx = string.find(result, colorTag, lastEnd, true)
             local textSegment = string.sub(result, lastEnd, startIdx - 1)
             
@@ -222,32 +212,6 @@ function Mindlink.applyHighlights(text, channel)
 
     for word, color in pairs(Mindlink.config.highlights.words) do
         smartWordHighlight(word, color)
-    end
-
-    if Legacy and Legacy.NDB and type(Legacy.NDB.db) == "table" then
-        local plainText = string.gsub(result, "<[0-9,:]+>", "")
-        local processedNames = {}
-        
-        for word in string.gmatch(plainText, "%a+") do
-            local titleWord = word:sub(1,1):upper() .. word:sub(2):lower()
-            
-            if not processedNames[titleWord] and not Mindlink.config.highlights.words[titleWord] then
-                local entry = Legacy.NDB.db[titleWord]
-                if entry and entry.city then
-                    local color = nil
-                    if Legacy.Settings and Legacy.Settings.NDB and Legacy.Settings.NDB.Config then
-                        local cityConfig = Legacy.Settings.NDB.Config[entry.city:lower()]
-                        if cityConfig and cityConfig.color then
-                            color = cityConfig.color
-                        end
-                    end
-                    if color then
-                        smartWordHighlight(titleWord, color)
-                        processedNames[titleWord] = true
-                    end
-                end
-            end
-        end
     end
 
     return result
@@ -271,7 +235,7 @@ function Mindlink.appendChat(targetTab, formattedText, timeStr)
 end
 
 -- =========================================================================
--- GMCP Chat Processing
+-- GMCP Chat Processing (Decoupled Geyser/Main Pipelines)
 -- =========================================================================
 function Mindlink.onGMCPChat()
     if not gmcp.Comm or not gmcp.Comm.Channel or not gmcp.Comm.Channel.Text then return end
@@ -301,52 +265,126 @@ function Mindlink.onGMCPChat()
         end
     end
 
-    local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
-    local formattedText = ansi2decho(text):gsub("<reset>", "")
-    formattedText = Mindlink.applyHighlights(formattedText, channel)
-
-    Mindlink.appendChat(targetTab, formattedText, timeStr)
-    Mindlink.logMessage(targetTab, text)
-
-    -- THE FIX 1: Strip ANSI and strictly trim invisible leading/trailing whitespace
-    local cleanText = ansi2string(text):match("^%s*(.-)%s*$") or ansi2string(text)
-    
-    local function processMainWindow(action)
-        local found = false
-        local lineNum = getLineCount("main")
-        
-        -- THE FIX 2: Scan the last 30 lines (increased to beat combat spam!)
-        for i = lineNum, math.max(1, lineNum - 30), -1 do
-            moveCursor("main", 0, i)
-            local currentLine = getCurrentLine("main")
-            
-            -- Substring match finds it even if Achaea padded the line
-            if string.find(currentLine, cleanText, 1, true) then
-                selectCurrentLine("main")
-                action()
-                found = true
-                break
-            end
-        end
-        moveCursor("main", 0, getLineCount("main"))
-        
-        if not found then
-            -- THE FIX 3: Escape PCRE magic characters with a backslash for Mudlet's regex engine
-            local regexSafeText = cleanText:gsub("([%.%^%$%(%)%[%]%*%+%-%?%|%{%}\\])", "\\%1")
-            
-            -- Use a regex trigger so it acts like a substring match, ignoring invisible garbage
-            tempRegexTrigger(regexSafeText, function() 
-                selectCurrentLine()
-                action() 
-            end, 1)
+    -- Process explicitly defined channel colors
+    local chanColorStr = nil
+    for prefix, color in pairs(Mindlink.config.highlights.channels) do
+        if string.find(channel:lower(), "^" .. prefix:lower()) then
+            chanColorStr = color
+            break
         end
     end
+    local cR, cG, cB
+    if chanColorStr then
+        cR, cG, cB = Mindlink.parseColor(chanColorStr)
+    end
 
-    if Mindlink.config.gagMain or isChannelHidden then
-        processMainWindow(function() deleteLine() end)
-    elseif Mindlink.config.colorMain then
-        local mainText = timeStr .. formattedText .. "<192,192,192>"
-        processMainWindow(function() dreplace(mainText) end)
+    -- 1. Format for Tabs (Geyser Window)
+    local continuousText = text:gsub("\r?\n", " ")
+    local timeStr = Mindlink.config.timestamp and getTime(true, Mindlink.config.timestamp) or ""
+    
+    local formattedText = ""
+    if chanColorStr then
+        -- FIXED: Force explicit RGB construction over purely stripped text. No grey ANSI tags survive!
+        formattedText = string.format("<%d,%d,%d>", cR, cG, cB) .. ansi2string(continuousText)
+    else
+        -- Fallback to Achaea's native colors if channel is completely unmapped
+        formattedText = ansi2decho(continuousText):gsub("<reset>", "")
+    end
+    
+    formattedText = Mindlink.applyWordHighlights(formattedText)
+    Mindlink.appendChat(targetTab, formattedText, timeStr)
+    Mindlink.logMessage(targetTab, continuousText)
+
+    -- 2. Mathematical Highlighting for Main Window
+    local cleanLines = {}
+    for s in string.gmatch(ansi2string(text), "([^\r\n]+)") do
+        table.insert(cleanLines, s:match("^%s*(.-)%s*$") or s)
+    end
+    if #cleanLines == 0 then return end
+
+    -- Core Painting Engine
+    local function applyToMainWindow(lineStr, currentIdx)
+        moveCursor("main", 0, currentIdx)
+        local fullLine = getCurrentLine("main")
+        local startIdx = string.find(fullLine, lineStr, 1, true)
+        
+        if not startIdx then return currentIdx + 1 end 
+        
+        local startPos = startIdx - 1 
+        
+        if Mindlink.config.gagMain or isChannelHidden then
+            local currentLineTrimmed = fullLine:match("^%s*(.-)%s*$")
+            if currentLineTrimmed == lineStr then
+                deleteLine() 
+                return currentIdx 
+            else
+                selectSection("main", startPos, string.len(lineStr))
+                replace("") 
+                return currentIdx + 1
+            end
+        elseif Mindlink.config.colorMain then
+            if chanColorStr then
+                selectSection("main", startPos, string.len(lineStr))
+                setFgColor(cR, cG, cB)
+            end
+            
+            for word, color in pairs(Mindlink.config.highlights.words) do
+                local wR, wG, wB = Mindlink.parseColor(color)
+                local escapedWord = word:gsub("([^%w])", "%%%1")
+                local pattern = string.match(word, "^%a+$") and ("%f[%a]()" .. escapedWord .. "()%f[%A]") or ("()" .. escapedWord .. "()")
+                
+                local searchPos = 1
+                while true do
+                    local matchStart, matchEnd = string.match(lineStr, pattern, searchPos)
+                    if not matchStart then break end
+                    
+                    local actualLen = matchEnd - matchStart
+                    local sectionPos = startPos + (matchStart - 1)
+                    
+                    selectSection("main", sectionPos, actualLen)
+                    setFgColor(wR, wG, wB)
+                    
+                    searchPos = matchEnd
+                end
+            end
+            deselect("main")
+            return currentIdx + 1
+        end
+        return currentIdx + 1
+    end
+
+    -- Look back in time 30 lines
+    local found = false
+    local lineNum = getLineCount("main")
+    
+    for i = lineNum, math.max(1, lineNum - 30), -1 do
+        moveCursor("main", 0, i)
+        local currentLine = getCurrentLine("main")
+        
+        if string.find(currentLine, cleanLines[1], 1, true) then
+            found = true
+            local targetIdx = i
+            for j = 1, #cleanLines do
+                targetIdx = applyToMainWindow(cleanLines[j], targetIdx)
+            end
+            break
+        end
+    end
+    
+    moveCursor("main", 0, getLineCount("main"))
+    
+    -- If not found, set temporary triggers
+    if not found then
+        for idx, lineText in ipairs(cleanLines) do
+            local safeText = lineText:gsub("([%.%^%$%(%)%[%]%*%+%-%?%|%{%}\\])", "\\%1")
+            
+            local trigID
+            trigID = tempRegexTrigger(safeText, function()
+                applyToMainWindow(lineText, getLineNumber())
+            end, 1)
+            
+            tempTimer(3, function() if trigID then killTrigger(trigID) end end)
+        end
     end
 end
 
@@ -358,7 +396,6 @@ function Mindlink.captureFromTrigger(targetTab)
     if not console then return end
 
     local rawText = line
-    
     if Mindlink.config.ignorePatterns then
         for _, pattern in ipairs(Mindlink.config.ignorePatterns) do
             if string.find(rawText, pattern) then return end
@@ -374,29 +411,42 @@ function Mindlink.captureFromTrigger(targetTab)
         selectSection(i - 1, 1)
         local char = getSelection()
         if char == "" then break end
-        
         local r, g, b = getFgColor()
         local colorTag = string.format("<%d,%d,%d>", r, g, b)
-        
         if colorTag ~= lastColor then
             formattedText = formattedText .. colorTag
             lastColor = colorTag
         end
-        
         formattedText = formattedText .. char
     end
     deselect() 
     
-    formattedText = Mindlink.applyHighlights(formattedText)
-
+    -- Send fully formatted string to Geyser Tab
+    formattedText = Mindlink.applyWordHighlights(formattedText)
     Mindlink.appendChat(targetTab, formattedText, timeStr)
     Mindlink.logMessage(targetTab, rawText)
 
+    -- Handle Main Window (Mathematical Word Painting)
     if Mindlink.config.gagMain then
         deleteLine()
     elseif Mindlink.config.colorMain then
-        selectCurrentLine()
-        dreplace(timeStr .. formattedText)
+        -- Emotes already have the correct native game color. We just paint the names!
+        for word, color in pairs(Mindlink.config.highlights.words) do
+            local wR, wG, wB = Mindlink.parseColor(color)
+            local escapedWord = word:gsub("([^%w])", "%%%1")
+            local pattern = string.match(word, "^%a+$") and ("%f[%a]()" .. escapedWord .. "()%f[%A]") or ("()" .. escapedWord .. "()")
+            
+            local searchPos = 1
+            while true do
+                local matchStart, matchEnd = string.match(rawText, pattern, searchPos)
+                if not matchStart then break end
+                
+                selectSection("main", matchStart - 1, matchEnd - matchStart)
+                setFgColor(wR, wG, wB)
+                searchPos = matchEnd
+            end
+        end
+        deselect("main")
     end
 end
 
@@ -405,24 +455,17 @@ end
 -- =========================================================================
 function Mindlink.silenceColorConfig()
     local startID
-    -- Trigger 1: Listens for the very first line of the block
     startID = tempRegexTrigger("^Channel emotes set to \\d+\\.", function()
         deleteLine()
-        
         local gagID
-        -- Trigger 2: Aggressively gags everything until the end phrase is found
         gagID = tempRegexTrigger("^.*$", function()
             deleteLine()
             if string.find(line, "To restore the defaults, enter CONFIG COLOUR DEFAULT", 1, true) then
-                killTrigger(gagID) -- Stop gagging!
+                killTrigger(gagID) 
             end
         end)
-        
-        -- Failsafe: Turn off the gag after 2.5 seconds just in case the end line drops
         tempTimer(2.5, function() if gagID then killTrigger(gagID) end end)
-    end, 1) -- '1' means this start listener fires exactly once, then self-destructs
-    
-    -- Failsafe: Turn off the listener if the command fails
+    end, 1)
     tempTimer(2.5, function() if startID then killTrigger(startID) end end)
 end
 
@@ -454,25 +497,20 @@ end
 
 function Mindlink.handleCommand(args)
     local cmd = args:lower()
-    
     if cmd == "help" or cmd == "" then
         Mindlink.showHelp()
-        
     elseif cmd == "toggle gag" then
         Mindlink.config.gagMain = not Mindlink.config.gagMain
         local state = Mindlink.config.gagMain and "<green>ON" or "<red>OFF"
         cecho("\n<dodger_blue>[Mindlink]:<reset> Main Window Gagging is now " .. state .. "<reset>\n")
-        
     elseif cmd == "toggle color" then
         Mindlink.config.colorMain = not Mindlink.config.colorMain
         local state = Mindlink.config.colorMain and "<green>ON" or "<red>OFF"
         cecho("\n<dodger_blue>[Mindlink]:<reset> Main Window Coloring is now " .. state .. "<reset>\n")
-        
     elseif cmd == "debug" then
         Mindlink.config.debug = not Mindlink.config.debug
         local state = Mindlink.config.debug and "<green>ON" or "<red>OFF"
         cecho("\n<dodger_blue>[Mindlink]:<reset> GMCP Channel Sniffer is now " .. state .. "<reset>\n")
-        
     elseif cmd:sub(1, 4) == "gag " then
         local chan = cmd:sub(5):match("^%s*(.-)%s*$") 
         if chan == "" then
@@ -486,26 +524,19 @@ function Mindlink.handleCommand(args)
                 cecho("\n<dodger_blue>[Mindlink]:<reset> Channel '<yellow>" .. chan .. "<reset>' is now hidden (session only).\n")
             end
         end
-        
     elseif cmd:sub(1, 6) == "emote " then
         local colorNum = cmd:sub(7):match("^%s*(%d+)%s*$")
         if colorNum then
             Mindlink.config.emoteColor = tonumber(colorNum)
-            
-            -- Silently eat the massive output block
             Mindlink.silenceColorConfig()
-            
             send("config colour emotes " .. colorNum, false)
-            
             if Mindlink.emoteTrigger then killTrigger(Mindlink.emoteTrigger) end
             Mindlink.emoteTrigger = tempColorTrigger(Mindlink.config.emoteColor, -1, [[Mindlink.captureFromTrigger("Local")]])
-            
             cecho("\n<dodger_blue>[Mindlink]:<reset> Emote color set to " .. colorNum .. " and trigger updated!\n")
             cecho("<dodger_blue>[Mindlink]:<reset> (Note: Update <yellow>Mindlink.config.emoteColor<reset> in the script to make this permanent.)\n")
         else
             cecho("\n<dodger_blue>[Mindlink]:<reset> Please specify a valid XTerm256 color number (0-255).\n")
         end
-        
     else
         cecho("\n<dodger_blue>[Mindlink]:<reset> Unknown command. Type <yellow>mindlink help<reset> for options.\n")
     end
@@ -528,11 +559,8 @@ function Mindlink.init()
     ]])
 
     if Mindlink.emoteTrigger then killTrigger(Mindlink.emoteTrigger) end
-    
-    -- Silently eat the massive output block on load
     Mindlink.silenceColorConfig()
     send("config colour emotes " .. Mindlink.config.emoteColor, false)
-    
     Mindlink.emoteTrigger = tempColorTrigger(Mindlink.config.emoteColor, -1, [[Mindlink.captureFromTrigger("Local")]])
 
     Mindlink.createUI()
@@ -542,14 +570,11 @@ end
 -- =========================================================================
 -- Initialization Hook
 -- =========================================================================
--- 1. Check if we are already logged in (allows saving the script mid-game)
 if gmcp and gmcp.Char and gmcp.Char.Name then
     Mindlink.init()
 else
-    -- 2. If starting fresh, wait for the successful login message
     if Mindlink.loginTrigger then killTrigger(Mindlink.loginTrigger) end
-    
-    Mindlink.loginTrigger = tempExactMatchTrigger("Password correct. Welcome to Achaea.", function()
+    Mindlink.loginTrigger = tempRegexTrigger("Password correct\\. Welcome to Achaea\\.", function()
         Mindlink.init()
-    end, 1) -- The '1' makes the trigger self-destruct after it fires once!
+    end, 1)
 end
