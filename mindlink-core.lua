@@ -659,7 +659,7 @@ function Mindlink.showHelp()
     cecho("\n<dodger_blue>                        M I N D L I N K   H E L P                      <reset>")
     cecho("\n<dodger_blue>=======================================================================<reset>\n")
     cecho("\n<white>Mindlink is a zero-dependency telepathic ledger. Most permanent changes")
-    cecho("\n(like adding new tabs or custom colors) are made by editing the")
+    cecho("\n<white>(like adding new tabs or custom colors) are made by editing the")
     cecho("\n<yellow>Mindlink.config<white> block at the very top of the Mindlink script.<reset>\n")
     
     cecho("\n<cyan>In-Game Commands (Current Session Only):<reset>")
