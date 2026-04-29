@@ -532,4 +532,17 @@ function Mindlink.init()
     cecho("\n<green>[Mindlink]:<reset> Telepathic Ledger Initialized. Type <yellow>mindlink help<reset> for commands.\n")
 end
 
-Mindlink.init()
+-- =========================================================================
+-- Initialization Hook
+-- =========================================================================
+-- 1. Check if we are already logged in (allows saving the script mid-game)
+if gmcp and gmcp.Char and gmcp.Char.Name then
+    Mindlink.init()
+else
+    -- 2. If starting fresh, wait for the successful login message
+    if Mindlink.loginTrigger then killTrigger(Mindlink.loginTrigger) end
+    
+    Mindlink.loginTrigger = tempExactMatchTrigger("Password correct. Welcome to Achaea.", function()
+        Mindlink.init()
+    end, 1) -- The '1' makes the trigger self-destruct after it fires once!
+end
