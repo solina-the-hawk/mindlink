@@ -47,7 +47,7 @@ When you install Mindlink, the script automatically talks to Achaea to set your 
 
 If you have logging enabled for a tab, Mindlink will organize them by date in a custom folder. 
 
-To find your logs and your exported JSON profiles, open Mudlet's main input line and type:
+To find your logs and your exported JSON profiles, look in your Mudlet Profile folder. If you're not sure where that is, open Mudlet's main input line and type:
 `lua getMudletHomeDir()`
 
 Navigate to that folder on your computer, and you will find a directory named **Mindlink**. Inside, you will see your `Mindlink_Profile.json` configuration file, as well as a **Logs** folder containing your chat history.
