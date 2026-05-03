@@ -6,6 +6,10 @@ Mindlink is a modern, lightweight tell catcher, inspired by predacessors like YA
 Unlike older systems, Mindlink has zero external dependencies, relies purely on Mudlet's native Geyser layout manager, and includes automated roleplay logging.
 
 ---
+## Screenshots
+<img width="979" height="535" alt="image" src="https://github.com/user-attachments/assets/b3539b7f-b29e-4ebb-b876-ba95b79135e3" />
+<img width="641" height="64" alt="image" src="https://github.com/user-attachments/assets/333f3c9b-6b46-4f42-a81c-be5b3116ce5c" />
+
 
 ## Features
 
