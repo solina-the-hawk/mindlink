@@ -1,4 +1,4 @@
-Mindlink: Telepathic Communication Ledger (v1.2.1)
+Mindlink: Telepathic Communication Ledger (v1.2.6)
 
 A lightweight, zero-dependency tabbed chat capture system for Achaea. 
 Mindlink cleanly organizes your channels, tells, and local interactions into a customizable Geyser interface so you never miss a message to screen spam. 

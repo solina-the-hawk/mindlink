@@ -4,7 +4,7 @@
 -- while sailing or traveling, and easily refer back to conversations without
 -- losing your place in the main window.
 -- Author: Solina (https://github.com/solina-the-hawk/mindlink/)
--- Version: 1.2.1
+-- Version: 1.2.6
 -- =========================================================================
 Mindlink = Mindlink or {}
 
