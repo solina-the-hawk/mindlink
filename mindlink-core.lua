@@ -118,6 +118,8 @@ Mindlink.config = {
         linesContaining = {
             -- Example: Enter a phrase of your choosing and watch the entire line containing it highlight!
             ["The sun shines brightly on the daisies"] = "<255,255,153>",
+            -- Example: Paint all ship announcements a bright, unmissable cyan!
+            ["==[CAPTAIN'S ANNOUNCEMENT:"] = "<0,255,255>",
         }
 }
 }
@@ -776,11 +778,16 @@ function Mindlink.init()
         Mindlink.handleCommand(args)
     ]])
 
-    -- Create the Emote Trigger EXACTLY ONCE
+    -- 2. Create the Emote Trigger EXACTLY ONCE
     if Mindlink.emoteTrigger then killTrigger(Mindlink.emoteTrigger) end
     Mindlink.silenceColorConfig()
     send("config colour emotes " .. Mindlink.config.emoteColor, false)
     Mindlink.emoteTrigger = tempColorTrigger(Mindlink.config.emoteColor, -1, [[Mindlink.captureFromTrigger("Local")]])
+
+    -- 3. Create the Ship Announcement Trigger
+    if Mindlink.shipTrigger then killTrigger(Mindlink.shipTrigger) end
+    -- We anchor this with ^ so it only catches actual announcements, not people quoting them!
+    Mindlink.shipTrigger = tempRegexTrigger("^==\\[CAPTAIN'S ANNOUNCEMENT: .*$", [[Mindlink.captureFromTrigger("Local")]])
 
     Mindlink.createUI()
     cecho("\n<dodger_blue>[Mindlink]:<reset> Telepathic Ledger Initialized. Type <yellow>mindlink help<reset> for commands.\n")
